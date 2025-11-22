@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import { StatusBar, View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TodayLogScreen } from "./src/screens/TodayLogScreen";
+import { TodoScreen } from "./src/screens/TodoScreen";
 import { HistoryScreen } from "./src/screens/HistoryScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { ThemeProvider, useTheme } from "./src/styles/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 //import { ThemeKey } from "./src/styles/theme";
 import { BottomTabBar, TabId } from "./src/components/BottomTabBar";
-
-//type Tab = "today" | "history";
 
 export default function App() {
   return (
@@ -33,40 +32,11 @@ const RootApp: React.FC = () => {
         }
       />
 
-      {/* テーマ切り替え（右上あたりに小さく） */}
-      {/*<View
-        style={{
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          paddingHorizontal: 16,
-          paddingTop: 4,
-          gap: 8,
-        }}
-      >
-        <ThemeChip
-          label="Night"
-          color={themeKey === "night" ? theme.colors.primary : "#4B5563"}
-          active={themeKey === "night"}
-          onPress={() => setThemeKey("night")}
-        />
-        <ThemeChip
-          label="Morning"
-          color={themeKey === "morning" ? "#F97316" : "#9CA3AF"}
-          active={themeKey === "morning"}
-          onPress={() => setThemeKey("morning")}
-        />
-        <ThemeChip
-          label="Forest"
-          color={themeKey === "forest" ? "#10B981" : "#6EE7B7"}
-          active={themeKey === "forest"}
-          onPress={() => setThemeKey("forest")}
-        />
-      </View>*/}
-
       {/* メイン画面 */}
       {/*{tab === "today" ? <TodayLogScreen /> : <HistoryScreen />}*/}
       <View style={{ flex: 1 }}>
         {tab === "today" && <TodayLogScreen />}
+        {tab === "todo" && <TodoScreen />}   
         {tab === "history" && <HistoryScreen />}
         {tab === "settings" && <SettingsScreen />}          
       </View>

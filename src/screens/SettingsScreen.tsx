@@ -35,21 +35,21 @@ export const SettingsScreen: React.FC = () => {
             label="Night"
             description="ダークで落ち着いた"
             active={themeKey === "night"}
-            color={theme.colors.primary}
+            color={themeKey === "night" ? theme.colors.primary : "#4B5563"}
             onPress={() => handleChangeTheme("night")}
           />
           <ThemeChip
             label="Morning"
             description="明るく爽やかな"
             active={themeKey === "morning"}
-            color="#F97316"
+            color={themeKey === "morning" ? "#F97316" : "#9CA3AF"}
             onPress={() => handleChangeTheme("morning")}
           />
           <ThemeChip
             label="Forest"
             description="森の中にいるような"
             active={themeKey === "forest"}
-            color="#10B981"
+            color={themeKey === "forest" ? "#10B981" : "#6EE7B7"}
             onPress={() => handleChangeTheme("forest")}
           />
         </View>

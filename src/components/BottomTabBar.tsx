@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../styles/ThemeContext";
 import { Theme } from "../styles/theme";
 
-export type TabId = "today" | "history" | "settings"; 
+export type TabId = "today" | "todo" | "history" | "settings"; 
 
 type Props = {
   activeTab: TabId;
@@ -19,6 +19,7 @@ type Props = {
 const TABS: { id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }[] =
   [
     { id: "today", label: "今日", icon: "today-outline" },
+    { id: "todo", label: "タスク", icon: "checkmark-done-outline" },
     { id: "history", label: "履歴", icon: "time-outline" },
     { id: "settings", label: "設定", icon: "settings-outline" }, 
   ];
