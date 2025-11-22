@@ -3,11 +3,13 @@ import { StatusBar, View, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TodayLogScreen } from "./src/screens/TodayLogScreen";
 import { HistoryScreen } from "./src/screens/HistoryScreen";
+import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { ThemeProvider, useTheme } from "./src/styles/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 //import { ThemeKey } from "./src/styles/theme";
+import { BottomTabBar, TabId } from "./src/components/BottomTabBar";
 
-type Tab = "today" | "history";
+//type Tab = "today" | "history";
 
 export default function App() {
   return (
@@ -18,8 +20,8 @@ export default function App() {
 }
 
 const RootApp: React.FC = () => {
-  const [tab, setTab] = useState<Tab>("today");
-  const { theme, themeKey, setThemeKey } = useTheme();
+  const [tab, setTab] = useState<TabId>("today");
+  const { theme, themeKey } = useTheme();
 
   return (
     <SafeAreaView
@@ -32,7 +34,7 @@ const RootApp: React.FC = () => {
       />
 
       {/* テーマ切り替え（右上あたりに小さく） */}
-      <View
+      {/*<View
         style={{
           flexDirection: "row",
           justifyContent: "flex-end",
@@ -59,33 +61,18 @@ const RootApp: React.FC = () => {
           active={themeKey === "forest"}
           onPress={() => setThemeKey("forest")}
         />
-      </View>
+      </View>*/}
 
       {/* メイン画面 */}
-      {tab === "today" ? <TodayLogScreen /> : <HistoryScreen />}
-
-      {/* タブバー */}
-      <View
-        style={{
-          flexDirection: "row",
-          paddingHorizontal: 16,
-          paddingTop: 8,
-          gap: 8,
-        }}
-      >
-        <TabButton
-          icon="today-outline"
-          label="今日"
-          active={tab === "today"}
-          onPress={() => setTab("today")}
-        />
-        <TabButton
-          icon="time-outline"
-          label="履歴"
-          active={tab === "history"}
-          onPress={() => setTab("history")}
-        />
+      {/*{tab === "today" ? <TodayLogScreen /> : <HistoryScreen />}*/}
+      <View style={{ flex: 1 }}>
+        {tab === "today" && <TodayLogScreen />}
+        {tab === "history" && <HistoryScreen />}
+        {tab === "settings" && <SettingsScreen />}          
       </View>
+
+      {/* ボトムバー */}
+      <BottomTabBar activeTab={tab} onChangeTab={setTab} />
     </SafeAreaView>
   );
 };

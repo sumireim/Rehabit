@@ -1,4 +1,3 @@
-// src/styles/ThemeContext.tsx
 import React, {
   createContext,
   useContext,

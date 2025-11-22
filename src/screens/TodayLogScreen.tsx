@@ -46,7 +46,7 @@ export const TodayLogScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* ヘッダー */}
-        <Text style={styles.title}>Rehabit</Text>
+        <Text style={styles.title}>今日</Text>
         <Text style={styles.subtitle}>今日の「整い」を記録しよう。</Text>
 
         <View style={styles.dateBadge}>
