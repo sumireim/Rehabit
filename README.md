@@ -19,26 +19,30 @@
 
 
 ```
-rehabit/
-├── README.md
+Rehabit/
+├── App.tsx
+├── index.ts
+├── app.json
 ├── package.json
-├── app.json           # Expo 設定
-├── tsconfig.json      # TypeScript 設定（TS使う前提でおすすめ）
-├── babel.config.js
+├── package-lock.json
+├── tsconfig.json
+├── assets/
+│   ├── splash-icon.png
+│   ├── icon.png
+│   ├── adaptive-icon.png
+│   └── favicon.png
 └── src/
-    ├── App.tsx        # エントリーポイント（後で分割してもOK）
     ├── screens/
-    │   └── TodayLogScreen.tsx      # 今日のログ画面（PBL-01のメイン）
-    ├── components/
-    │   ├── MoodSelector.tsx        # 気分5段階セレクタ
-    │   ├── SleepInput.tsx          # 睡眠時間入力
-    │   └── FocusSelector.tsx       # 集中度入力
+    │   ├── TodayLogScreen.tsx
+    │   └── HistoryScreen.tsx
     ├── hooks/
-    │   └── useDailyLog.ts          # 今日のログを扱うカスタムフック
+    │   └── useDailyLog.ts
     ├── storage/
-    │   └── dailyLogRepository.ts   # AsyncStorage で保存する層
+    │   └── dailyLogRepository.ts
+    ├── styles/
+    │   └── theme.ts
     └── types/
-        └── dailyLog.ts             # DailyLog 型定義
+        └── dailyLog.ts
 
 ```
 
