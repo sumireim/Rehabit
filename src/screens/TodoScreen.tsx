@@ -30,42 +30,59 @@ function getTodayISODate() {
   return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
-// ひとまず固定のミニ習慣
-const DEFAULT_HABITS: Habit[] = [
+// チャレンジ開始日決定
+const CHALLENGE_START_DATE = "2025-02-01"; // YYYY-MM-DD
+
+function calcChallengeDay(todayISO: string, startISO: string): number {
+  const today = new Date(todayISO);
+  const start = new Date(startISO);
+
+  // 時差ズレ対策でUTCに寄せるならここ調整してもOK
+  const diffMs = today.getTime() - start.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const day = diffDays + 1; // 1日目スタート
+  if (day < 1) return 0; // まだチャレンジ開始前
+  return day;
+}
+
+// 90日チャレンジ用の固定習慣リスト
+const CHALLENGE_HABITS: Habit[] = [
   {
     id: "early",
-    title: "いつもより少し早く起きる",
-    description: "+30分だけでもOK",
+    title: "6 a.m.に起きる",
+    description: "平日・休日どちらもOK",
     category: "life",
   },
   {
     id: "water",
-    title: "水をコップ2杯以上飲む",
-    description: "起床後〜午前中に",
+    title: "水を1.5L飲む",
+    description: "起床後〜午前中を意識",
     category: "body",
   },
   {
     id: "focus",
-    title: "集中タイムを1セット取る",
-    description: "25分でも可",
+    title: "勉強する",
+    description: "集中",
     category: "mind",
   },
   {
     id: "move",
-    title: "軽い運動をする",
-    description: "散歩・ストレッチなど",
+    title: "5分以上のストレッチ or 散歩",
+    description: "寝る前でもOK",
     category: "body",
   },
 ];
 
 export const TodoScreen: React.FC = () => {
   const today = getTodayISODate();
+  const dayOfChallenge = calcChallengeDay(today, CHALLENGE_START_DATE);
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
   // TODO: 後で日付ごとに保存するようにする（AsyncStorage / DB と連携）
   const [habitStates, setHabitStates] = useState<HabitState[]>(
-    DEFAULT_HABITS.map((h) => ({ ...h, done: false }))
+    CHALLENGE_HABITS.map((h) => ({ ...h, done: false }))
   );
 
   const completedCount = useMemo(
@@ -92,21 +109,12 @@ export const TodoScreen: React.FC = () => {
   const loading = false;
 
   const handleTempSave = () => {
-    // 後で保存処理に差し替え
+    // ★ ひとまず見た目確認用。あとで永続化処理に差し替える
     Alert.alert(
-      "チェック状況を保存（ダミー）",
-      "このボタンは MVP ではUI確認用です。後でストレージと連携させよう。"
+      "チェック状況（フロントのみ）",
+      "今はアプリ起動中だけ保持されます。\nバックエンド or ストレージ連携はあとで追加しよう。"
     );
   };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.colors.primary} />
-        <Text style={[styles.subtext, { marginTop: 8 }]}>読み込み中...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.root}>
@@ -115,9 +123,9 @@ export const TodoScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* ヘッダー */}
-        <Text style={styles.title}>To Do</Text>
+        <Text style={styles.title}>90日チャレンジ</Text>
         <Text style={styles.subtitle}>
-          今日やる「ミニ習慣」をチェックしよう。
+          選んだ習慣を、90日間コツコツ続けていくモードです。
         </Text>
 
         <View style={styles.dateBadge}>
@@ -129,7 +137,7 @@ export const TodoScreen: React.FC = () => {
           <Text style={styles.dateText}>{today}</Text>
         </View>
 
-        {/* 今日の進捗カード */}
+        {/* 進捗カード */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons
@@ -137,20 +145,40 @@ export const TodoScreen: React.FC = () => {
               size={20}
               color={theme.colors.primary}
             />
-            <Text style={styles.cardTitle}>今日の進捗</Text>
+            <Text style={styles.cardTitle}>チャレンジの進捗</Text>
           </View>
+
           <Text style={styles.cardDescription}>
-            まずは「全部でなくていいから、1つだけでもやる」を目標にしよう。
+            まずは「毎日なにか1つは続ける」ことを目標にしてみましょう。
           </Text>
 
-          <View style={styles.progressRow}>
-            <Text style={styles.progressText}>
-              達成 {completedCount} / {totalCount}
-            </Text>
-            <Text style={styles.progressPercent}>{progress}%</Text>
+          <View style={styles.challengeInfoRow}>
+            <View>
+              <Text style={styles.challengeLabel}>Day</Text>
+              <Text style={styles.challengeDayText}>
+                {dayOfChallenge > 0 && dayOfChallenge <= 90
+                  ? dayOfChallenge
+                  : dayOfChallenge <= 0
+                  ? "まだ開始前"
+                  : "完走！"}
+                {dayOfChallenge > 0 && dayOfChallenge <= 90 && (
+                  <Text style={styles.challengeDaySmall}> / 90</Text>
+                )}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.challengeLabel}>今日の達成</Text>
+              <Text style={styles.challengeDayText}>
+                {completedCount} / {totalCount}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.challengeLabel}>達成率</Text>
+              <Text style={styles.challengeDayText}>{progress}%</Text>
+            </View>
           </View>
 
-          {/* 簡易プログレスバー */}
+          {/* プログレスバー */}
           <View style={styles.progressBarBackground}>
             <View
               style={[
@@ -161,7 +189,7 @@ export const TodoScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 習慣リストカード */}
+        {/* 習慣リスト */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons
@@ -169,10 +197,10 @@ export const TodoScreen: React.FC = () => {
               size={20}
               color={theme.colors.primary}
             />
-            <Text style={styles.cardTitle}>今日のミニ習慣</Text>
+            <Text style={styles.cardTitle}>今日のチェック</Text>
           </View>
           <Text style={styles.cardDescription}>
-            今日、できそうなところから1つずつチェックしていこう。
+            90日間、同じ習慣セットを積み上げていきます。できたものにチェックをつけましょう。
           </Text>
 
           {habitStates.map((habit) => (
@@ -233,18 +261,17 @@ export const TodoScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* 保存 or 後で本番用に差し替えるボタン */}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleTempSave}
-        >
+        {/* 一時保存ボタン（将来ここを本物の保存処理に） */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleTempSave}>
           <Ionicons
             name="save-outline"
             size={18}
             color="#fff"
             style={{ marginRight: 6 }}
           />
-          <Text style={styles.saveButtonText}>チェック状況を一時保存（仮）</Text>
+          <Text style={styles.saveButtonText}>
+            今日のチェックを確認（フロントのみ）
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -261,12 +288,6 @@ const createStyles = (theme: Theme) =>
       paddingTop: 32,
       paddingHorizontal: 20,
       paddingBottom: 32,
-    },
-    center: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-      alignItems: "center",
-      justifyContent: "center",
     },
     title: {
       fontSize: 28,
@@ -318,24 +339,26 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.subtext,
       marginBottom: 12,
     },
-    subtext: {
-      color: theme.colors.subtext,
-    },
-    // 進捗部分
-    progressRow: {
+    // 進捗まわり
+    challengeInfoRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "baseline",
-      marginBottom: 6,
+      marginBottom: 10,
     },
-    progressText: {
-      fontSize: 14,
+    challengeLabel: {
+      fontSize: 11,
       color: theme.colors.subtext,
+      marginBottom: 2,
     },
-    progressPercent: {
-      fontSize: 20,
+    challengeDayText: {
+      fontSize: 18,
       fontWeight: "700",
       color: theme.colors.text,
+    },
+    challengeDaySmall: {
+      fontSize: 14,
+      color: theme.colors.subtext,
+      fontWeight: "400",
     },
     progressBarBackground: {
       height: 8,
@@ -398,7 +421,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.primary,
       fontWeight: "600",
     },
-    // 保存ボタン
+    // ボタン
     saveButton: {
       marginTop: 8,
       paddingVertical: 12,
