@@ -1,16 +1,21 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
-  Alert,
   ScrollView,
+  ActivityIndicator, 
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../styles/ThemeContext";
 import { Theme } from "../styles/theme";
+import { useChallenge } from "../components/ChallengeContext";
+import {
+  challengeLogRepository,
+  DailyChallengeLog,
+} from "../storage/challengeLogRepository";
 
 type HabitCategory = "mind" | "body" | "life";
 
@@ -30,40 +35,36 @@ function getTodayISODate() {
   return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
-// チャレンジ開始日決定
-const CHALLENGE_START_DATE = "2025-02-01"; // YYYY-MM-DD
-
 function calcChallengeDay(todayISO: string, startISO: string): number {
   const today = new Date(todayISO);
   const start = new Date(startISO);
 
-  // 時差ズレ対策でUTCに寄せるならここ調整してもOK
   const diffMs = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   const day = diffDays + 1; // 1日目スタート
-  if (day < 1) return 0; // まだチャレンジ開始前
+  if (day < 1) return 0;
   return day;
 }
 
-// 90日チャレンジ用の固定習慣リスト
+// 固定のチャレンジ習慣（あとでカスタマイズ画面を作ってもOK）
 const CHALLENGE_HABITS: Habit[] = [
   {
     id: "early",
-    title: "6 a.m.に起きる",
+    title: "いつもより30分早く起きる",
     description: "平日・休日どちらもOK",
     category: "life",
   },
   {
     id: "water",
-    title: "水を1.5L飲む",
+    title: "水をコップ2杯以上飲む",
     description: "起床後〜午前中を意識",
     category: "body",
   },
   {
     id: "focus",
-    title: "勉強する",
-    description: "集中",
+    title: "集中タイム25分を1セット",
+    description: "勉強・仕事どちらでも可",
     category: "mind",
   },
   {
@@ -76,45 +77,90 @@ const CHALLENGE_HABITS: Habit[] = [
 
 export const TodoScreen: React.FC = () => {
   const today = getTodayISODate();
-  const dayOfChallenge = calcChallengeDay(today, CHALLENGE_START_DATE);
+  const { startDate } = useChallenge();
+  const dayOfChallenge = calcChallengeDay(today, startDate);
+
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
-  // TODO: 後で日付ごとに保存するようにする（AsyncStorage / DB と連携）
   const [habitStates, setHabitStates] = useState<HabitState[]>(
     CHALLENGE_HABITS.map((h) => ({ ...h, done: false }))
   );
+  const [loading, setLoading] = useState(true);
+
+  // マウント時に「今日のチャレンジ進捗」を読み込む
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const existing = await challengeLogRepository.getByDate(today);
+      if (!mounted) return;
+
+      if (existing) {
+        setHabitStates(
+          CHALLENGE_HABITS.map((h) => ({
+            ...h,
+            done: !!existing.done[h.id],
+          }))
+        );
+      } else {
+        setHabitStates(
+          CHALLENGE_HABITS.map((h) => ({
+            ...h,
+            done: false,
+          }))
+        );
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [today]);
 
   const completedCount = useMemo(
     () => habitStates.filter((h) => h.done).length,
     [habitStates]
   );
   const totalCount = habitStates.length;
-  const progress = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  const progress =
+    totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
-  const toggleHabit = (id: string) => {
-    setHabitStates((prev) =>
-      prev.map((h) =>
-        h.id === id
-          ? {
-              ...h,
-              done: !h.done,
-            }
-          : h
-      )
-    );
+  const saveChallengeLog = async (nextStates: HabitState[]) => {
+    const doneMap: DailyChallengeLog["done"] = {};
+    nextStates.forEach((h) => {
+      doneMap[h.id] = h.done;
+    });
+
+    await challengeLogRepository.upsert({
+      date: today,
+      done: doneMap,
+    });
   };
 
-  // 将来的にストレージ読み込みを入れる
-  const loading = false;
+  const toggleHabit = async (id: string) => {
+    const nextStates = habitStates.map((h) =>
+      h.id === id ? { ...h, done: !h.done } : h
+    );
+    setHabitStates(nextStates);
+    await saveChallengeLog(nextStates);
+  };
 
-  const handleTempSave = () => {
-    // ★ ひとまず見た目確認用。あとで永続化処理に差し替える
+  const handleInfo = () => {
     Alert.alert(
-      "チェック状況（フロントのみ）",
-      "今はアプリ起動中だけ保持されます。\nバックエンド or ストレージ連携はあとで追加しよう。"
+      "チャレンジについて",
+      "ここでのチェック状況は端末内に保存され、履歴画面にも反映されます。"
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={theme.colors.primary} />
+        <Text style={styles.subtext}>読み込み中...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -125,7 +171,7 @@ export const TodoScreen: React.FC = () => {
         {/* ヘッダー */}
         <Text style={styles.title}>90日チャレンジ</Text>
         <Text style={styles.subtitle}>
-          選んだ習慣を、90日間コツコツ続けていくモードです。
+          選んだ習慣を、90日間コツコツ積み上げていくモードです。
         </Text>
 
         <View style={styles.dateBadge}>
@@ -146,6 +192,16 @@ export const TodoScreen: React.FC = () => {
               color={theme.colors.primary}
             />
             <Text style={styles.cardTitle}>チャレンジの進捗</Text>
+            <TouchableOpacity
+              onPress={handleInfo}
+              style={{ marginLeft: "auto" }}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color={theme.colors.subtext}
+              />
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.cardDescription}>
@@ -178,7 +234,6 @@ export const TodoScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* プログレスバー */}
           <View style={styles.progressBarBackground}>
             <View
               style={[
@@ -260,19 +315,6 @@ export const TodoScreen: React.FC = () => {
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* 一時保存ボタン（将来ここを本物の保存処理に） */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleTempSave}>
-          <Ionicons
-            name="save-outline"
-            size={18}
-            color="#fff"
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.saveButtonText}>
-            今日のチェックを確認（フロントのみ）
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -283,6 +325,16 @@ const createStyles = (theme: Theme) =>
     root: {
       flex: 1,
       backgroundColor: theme.colors.background,
+    },
+    center: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    subtext: {
+      color: theme.colors.subtext,
+      marginTop: 8,
     },
     scrollContent: {
       paddingTop: 32,
@@ -339,7 +391,6 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.subtext,
       marginBottom: 12,
     },
-    // 進捗まわり
     challengeInfoRow: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -371,7 +422,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: 999,
       backgroundColor: theme.colors.primary,
     },
-    // 習慣リスト
     habitRow: {
       flexDirection: "row",
       alignItems: "flex-start",
@@ -419,21 +469,6 @@ const createStyles = (theme: Theme) =>
     habitDoneLabel: {
       fontSize: 11,
       color: theme.colors.primary,
-      fontWeight: "600",
-    },
-    // ボタン
-    saveButton: {
-      marginTop: 8,
-      paddingVertical: 12,
-      borderRadius: 999,
-      backgroundColor: theme.colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-      flexDirection: "row",
-    },
-    saveButtonText: {
-      color: "#fff",
-      fontSize: 14,
       fontWeight: "600",
     },
   });

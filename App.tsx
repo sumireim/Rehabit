@@ -9,11 +9,14 @@ import { ThemeProvider, useTheme } from "./src/styles/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 //import { ThemeKey } from "./src/styles/theme";
 import { BottomTabBar, TabId } from "./src/components/BottomTabBar";
+import { ChallengeProvider } from "./src/components/ChallengeContext";
 
 export default function App() {
   return (
     <ThemeProvider>
-      <RootApp />
+      <ChallengeProvider>
+        <RootApp />
+      </ChallengeProvider>
     </ThemeProvider>
   );
 }
