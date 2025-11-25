@@ -34,6 +34,31 @@ function calcChallengeDay(logDateISO: string, startISO: string): number {
   return day;
 }
 
+// 直近7日分の平均を計算
+function calcRecentAverages(logs: DailyLog[], days = 7) {
+  if (logs.length === 0) {
+    return { moodAvg: 0, sleepAvg: 0, focusAvg: 0 };
+  }
+  const recent = logs.slice(0, days); // logs は新しい順にソート済み
+
+  let moodSum = 0;
+  let sleepSum = 0;
+  let focusSum = 0;
+
+  for (const log of recent) {
+    moodSum += log.mood;
+    sleepSum += log.sleepHours;
+    focusSum += log.focus;
+  }
+
+  const n = recent.length;
+  return {
+    moodAvg: moodSum / n,
+    sleepAvg: sleepSum / n,
+    focusAvg: focusSum / n,
+  };
+}
+
 export const HistoryScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [challengeMap, setChallengeMap] = useState<
@@ -77,6 +102,14 @@ export const HistoryScreen: React.FC = () => {
       </View>
     );
   }
+  if (!startDate) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={theme.colors.primary} />
+        <Text style={[styles.subtext, { marginTop: 8 }]}>読み込み中...</Text>
+      </View>
+    );
+  }
 
   if (logs.length === 0) {
     return (
@@ -93,12 +126,89 @@ export const HistoryScreen: React.FC = () => {
     );
   }
 
-  const todayDay = calcChallengeDay(getTodayISODate(), startDate);
+  // 直近7日の平均
+  const { moodAvg, sleepAvg, focusAvg } = calcRecentAverages(logs, 7);
+
+  // グラフ用に 0〜100 に正規化（ざっくり）
+  const moodNorm = Math.max(0, Math.min(100, ((moodAvg - 1) / 4) * 100)); // mood: 1〜5
+  const focusNorm = Math.max(0, Math.min(100, ((focusAvg - 1) / 4) * 100)); // focus: 1〜5
+  // 睡眠は 4〜10h をざっくり 0〜100 にマップ
+  const sleepClamped = Math.max(4, Math.min(10, sleepAvg || 0));
+  const sleepNorm = ((sleepClamped - 4) / 6) * 100;
+
+  const todayDay =
+    startDate ? calcChallengeDay(getTodayISODate(), startDate) : 0;
+
 
   return (
     <View style={styles.root}>
       <Text style={styles.title}>履歴</Text>
       <Text style={styles.subtitle}>これまでの「整い」とチャレンジの軌跡。</Text>
+
+      {/* 直近7日の平均グラフカード */}
+      <View style={[styles.card, { marginBottom: 12 }]}>
+        <View style={styles.cardHeader}>
+          <Ionicons
+            name="analytics-outline"
+            size={18}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.date}>直近7日の平均</Text>
+        </View>
+        <Text style={styles.cardDescription}>
+          気分・睡眠・集中の平均値を、ざっくり比較できるグラフです。
+        </Text>
+
+        <View style={styles.barChartContainer}>
+          {/* 気分 */}
+          <View style={styles.barColumn}>
+            <View style={styles.barBackground}>
+              <View
+                style={[
+                  styles.barFillMood,
+                  { height: (moodNorm / 100) * 100 },
+                ]}
+              />
+            </View>
+            <Text style={styles.barLabel}>気分</Text>
+            <Text style={styles.barValue}>
+              {moodAvg ? moodAvg.toFixed(1) : "-"}
+            </Text>
+          </View>
+
+          {/* 睡眠 */}
+          <View style={styles.barColumn}>
+            <View style={styles.barBackground}>
+              <View
+                style={[
+                  styles.barFillSleep,
+                  { height: (sleepNorm / 100) * 100 },
+                ]}
+              />
+            </View>
+            <Text style={styles.barLabel}>睡眠 (h)</Text>
+            <Text style={styles.barValue}>
+              {sleepAvg ? sleepAvg.toFixed(1) : "-"}
+            </Text>
+          </View>
+
+          {/* 集中 */}
+          <View style={styles.barColumn}>
+            <View style={styles.barBackground}>
+              <View
+                style={[
+                  styles.barFillFocus,
+                  { height: (focusNorm / 100) * 100 },
+                ]}
+              />
+            </View>
+            <Text style={styles.barLabel}>集中</Text>
+            <Text style={styles.barValue}>
+              {focusAvg ? focusAvg.toFixed(1) : "-"}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {/* 90日チャレンジ概要カード */}
       <View style={[styles.card, { marginBottom: 16 }]}>
@@ -332,5 +442,51 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       fontWeight: "600",
       color: theme.colors.text,
+    },
+    // グラフ用
+    barChartContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      height: 120,
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    barColumn: {
+      flex: 1,
+      alignItems: "center",
+    },
+    barBackground: {
+      width: 20,
+      height: 100,
+      borderRadius: 999,
+      backgroundColor: theme.colors.cardSoft,
+      overflow: "hidden",
+      justifyContent: "flex-end",
+    },
+    barFillMood: {
+      width: "100%",
+      backgroundColor: "#FBBF24", // mood: yellow-ish
+      borderRadius: 999,
+    },
+    barFillSleep: {
+      width: "100%",
+      backgroundColor: "#3B82F6", // sleep: blue-ish
+      borderRadius: 999,
+    },
+    barFillFocus: {
+      width: "100%",
+      backgroundColor: "#10B981", // focus: green-ish
+      borderRadius: 999,
+    },
+    barLabel: {
+      fontSize: 11,
+      color: theme.colors.subtext,
+      marginTop: 4,
+    },
+    barValue: {
+      fontSize: 12,
+      color: theme.colors.text,
+      fontWeight: "600",
     },
   });

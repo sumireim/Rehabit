@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -29,17 +29,24 @@ export const SettingsScreen: React.FC = () => {
   const { startDate, setStartDate } = useChallenge();
   const [editingDate, setEditingDate] = useState(startDate);
 
-  const handleSetToday = () => {
+  // startDate が読み込まれたら、編集用の値にも反映
+  useEffect(() => {
+    if (startDate) {
+      setEditingDate(startDate);
+    }
+  }, [startDate]);
+
+  const handleSetToday = async () => {
     const today = getTodayISODate();
     setEditingDate(today);
-    setStartDate(today);
+    await setStartDate(today);
     Alert.alert(
       "更新しました",
       `チャレンジ開始日を今日（${today}）に変更しました。`
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(editingDate)) {
       Alert.alert(
         "形式エラー",
@@ -53,7 +60,7 @@ export const SettingsScreen: React.FC = () => {
       return;
     }
 
-    setStartDate(editingDate);
+    await setStartDate(editingDate);
     Alert.alert(
       "更新しました",
       `チャレンジ開始日を ${editingDate} に変更しました。`

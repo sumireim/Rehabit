@@ -1,51 +1,42 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { challengeMetaRepository } from "../storage/challengeMetaRepository";
 
 function getTodayISODate() {
   const d = new Date();
-  return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return d.toISOString().slice(0, 10);
 }
 
-type ChallengeContextValue = {
-  startDate: string;               // "YYYY-MM-DD"
-  setStartDate: (iso: string) => void;
+type ChallengeContextType = {
+  startDate: string;
+  setStartDate: (d: string) => Promise<void>;
 };
 
-const ChallengeContext = createContext<ChallengeContextValue | undefined>(
-  undefined
-);
+const ChallengeContext = createContext<ChallengeContextType>({
+  startDate: getTodayISODate(),
+  setStartDate: async () => {},
+});
 
-type Props = {
-  children: React.ReactNode;
-};
+export const ChallengeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [startDate, setStartDateState] = useState(getTodayISODate());
 
-export const ChallengeProvider: React.FC<Props> = ({ children }) => {
-  // ★ 初期値：とりあえず「今日」スタート
-  const [startDate, setStartDate] = useState<string>(getTodayISODate());
+  useEffect(() => {
+    (async () => {
+      const today = getTodayISODate();
+      const meta = await challengeMetaRepository.initIfNeeded(today);
+      setStartDateState(meta.startedAt);
+    })();
+  }, []);
 
-  const value = useMemo(
-    () => ({
-      startDate,
-      setStartDate,
-    }),
-    [startDate]
-  );
+  const setStartDate = async (date: string) => {
+    await challengeMetaRepository.setStartedAt(date);
+    setStartDateState(date);
+  };
 
   return (
-    <ChallengeContext.Provider value={value}>
+    <ChallengeContext.Provider value={{ startDate, setStartDate }}>
       {children}
     </ChallengeContext.Provider>
   );
 };
 
-export function useChallenge() {
-  const ctx = useContext(ChallengeContext);
-  if (!ctx) {
-    throw new Error("useChallenge must be used within ChallengeProvider");
-  }
-  return ctx;
-}
+export const useChallenge = () => useContext(ChallengeContext);
